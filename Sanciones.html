@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanciones de Guías</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        input { padding: 10px; margin: 20px; width: 50%; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f4b400; color: white; }
+        img { max-width: 100px; max-height: 100px; }
+    </style>
+</head>
+<body>
+    <h1>Lista de Sanciones</h1>
+    <input type="text" id="buscador" placeholder="Buscar por nombre de guía..." onkeyup="filtrarTabla()">
+    <table>
+        <thead>
+            <tr>
+                <th>Marca temporal</th>
+                <th>Nombre del guía</th>
+                <th>ID (INE/Folio)</th>
+                <th>Fecha de la falta</th>
+                <th>Tipo de sanción</th>
+                <th>Motivo</th>
+                <th>Evidencia</th>
+                <th>Responsable</th>
+                <th>Número de sanciones</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-sanciones"></tbody>
+    </table>
+    <script>
+        const sheetId = "1FRHLj-1NEY1TN9PQ9iH7s3xPSRfT1x9TPoa748U-Bww";
+        const apiKey = "AIzaSyCaZxpvBPULLZcDC_YWf2bbpKdyknXDGBk";
+        const range = "A2:I";
+        async function cargarDatos() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            const tabla = document.getElementById("tabla-sanciones");
+            tabla.innerHTML = "";
+            let ultimasSanciones = {};
+            data.values.forEach(row => {
+                let nombreGuia = row[1];
+                ultimasSanciones[nombreGuia] = row;
+            });
+            Object.values(ultimasSanciones).forEach(row => {
+                const fila = document.createElement("tr");
+                row.forEach((cell, index) => {
+                    const celda = document.createElement("td");
+                    if (index === 6 && cell.startsWith("http")) {
+                        const enlace = document.createElement("a");
+                        enlace.href = cell;
+                        enlace.target = "_blank";
+                        if (cell.match(/\.(jpeg|jpg|png|gif)$/i)) {
+                            const imagen = document.createElement("img");
+                            imagen.src = cell;
+                            enlace.appendChild(imagen);
+                        } else {
+                            enlace.textContent = "Ver evidencia";
+                        }
+                        celda.appendChild(enlace);
+                    } else {
+                        celda.textContent = cell;
+                    }
+                    if (index === 8) {
+                        let numSanciones = parseInt(cell);
+                        if (numSanciones === 1) celda.style.backgroundColor = "yellow";
+                        if (numSanciones === 2) celda.style.backgroundColor = "orange";
+                        if (numSanciones >= 3) celda.style.backgroundColor = "red";
+                    }
+                    fila.appendChild(celda);
+                });
+                tabla.appendChild(fila);
+            });
+        }
+        function filtrarTabla() {
+            const input = document.getElementById("buscador").value.toLowerCase();
+            const filas = document.getElementById("tabla-sanciones").getElementsByTagName("tr");
+            for (let i = 0; i < filas.length; i++) {
+                const nombre = filas[i].getElementsByTagName("td")[1];
+                if (nombre) {
+                    const texto = nombre.textContent || nombre.innerText;
+                    filas[i].style.display = texto.toLowerCase().includes(input) ? "" : "none";
+                }
+            }
+        }
+        cargarDatos();
+    </script>
+</body>
+</html>
